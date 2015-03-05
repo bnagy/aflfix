@@ -9,7 +9,11 @@
 #define MAX_NETSTRING 1024*1024*1024
 
 // globals
-FILE* sockf;
+static FILE* sockf = NULL;
+
+void die(const char* msg) __attribute__ ((noreturn));
+void setup (void) __attribute__ ((constructor));
+const unsigned char* afl_postprocess(const unsigned char* in_buf, unsigned int* inout_len);
 
 void 
 die(const char* msg) 
@@ -19,8 +23,6 @@ die(const char* msg)
 }
 
 // set up our socket on load
-void setup (void) __attribute__ ((constructor));
-
 void 
 setup(void) 
 { 
@@ -42,7 +44,7 @@ setup(void)
   memset(&saddr, 0, sizeof(struct sockaddr_un));
   saddr.sun_family = AF_UNIX;
   strlcpy(saddr.sun_path, sock_fname, sizeof(saddr.sun_path));
-  saddr_len = SUN_LEN(&saddr);
+  saddr_len = (socklen_t)SUN_LEN(&saddr);
   if (connect(sock, (struct sockaddr*)&saddr, saddr_len) < 0) {
     die("error in connect\n - is the listener \
 running?\n - does the sockfile have correct permissions?");
