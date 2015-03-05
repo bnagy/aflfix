@@ -94,7 +94,7 @@ func main() {
 		os.Exit(1)
 	}
 	log.Printf("Listening on %s...", sockName)
-	defer os.Remove(sockName)
+	defer os.Remove(sockName) // not guaranteed to run
 	defer s.Close()
 
 	for {
