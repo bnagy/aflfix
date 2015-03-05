@@ -1,9 +1,11 @@
 # afl-fuzz fixup shim
 
+## General Information
+
 This is a skeleton to fixup tests for afl-fuzz >= 1.52. I've used a Go fixer,
 but it should work for any language.
 
-The way everything works:
+### The way everything works:
 
 afl-fuzz will load a fixup library as a .so if you pass it the
 `AFL_POST_LIBRARY` environment variable. It will then call afl_postprocess
@@ -21,7 +23,7 @@ More about netstrings: http://cr.yp.to/proto/netstrings.txt
 This architecture should allow you to write fixers in any language that can
 talk to unix sockets, which should be more or less any language at all.
 
-Caveats:
+### Caveats:
 
 - Start your fix server BEFORE you start afl. The shim will die if it can't
   connect.
@@ -31,14 +33,13 @@ Caveats:
 - Don't use this at all. It's a bad approach and will do more harm than good
   in almost all cases.
 
-Benchmark for a very simple string substitution fixer:
+Benchmark for the Go side of a very simple string substitution fixer:
 ```
 $ go test -bench=.
 PASS
 BenchmarkFixup	  100000	     22149 ns/op
 ok  	github.com/bnagy/aflfix	2.507s
 ```
-(this excludes the C side overhead)
 
 ## Bugs
 
