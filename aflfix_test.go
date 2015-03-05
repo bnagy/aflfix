@@ -36,14 +36,16 @@ func sleepyConnect(dest string) (s net.Conn, err error) {
 }
 
 func BenchmarkFixup(b *testing.B) {
+
 	sock := path.Join(os.TempDir(), "aflfix.sock")
 	os.Setenv("AFL_FIX_SOCK", sock)
+
 	server := exec.Command("./aflfix")
 	err := server.Start()
 	if err != nil {
 		b.Fatalf("Unable to launch server: %s", err)
 	}
-	// When we exit the sock will EOF and the server will exit cleanly.
+
 	s, err := sleepyConnect(sock)
 	if err != nil {
 		b.Fatalf("Failed to connect to fix server")
@@ -54,6 +56,7 @@ func BenchmarkFixup(b *testing.B) {
 	scanner.Split(ScanNetStrings)
 	k := "Blah\xff\xfe\xaa\x00\x00Hello World"
 	out := []byte(fmt.Sprintf("%d:%s,", len(k), k))
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		s.Write(out)
@@ -65,18 +68,19 @@ func TestRoundTrip(t *testing.T) {
 
 	sock := path.Join(os.TempDir(), "aflfix.sock")
 	os.Setenv("AFL_FIX_SOCK", sock)
+
 	server := exec.Command("./aflfix")
 	err := server.Start()
 	if err != nil {
 		t.Fatalf("Unable to launch server: %s", err)
 	}
-	// Don't defer Kill() - when we exit the sock will EOF at the server end
-	// and it will exit cleanly.
+
 	s, err := sleepyConnect(sock)
 	if err != nil {
 		t.Fatalf("Failed to connect to fix server")
 	}
 	defer s.Close()
+	// don't need to kill, server will exit the socket EOFs
 
 	scanner := bufio.NewScanner(s)
 	scanner.Split(ScanNetStrings)
