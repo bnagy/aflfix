@@ -1,0 +1,4 @@
+Requires afl >= 1.52 
+
+This is an experimental feature so the upstream support may have changed,
+bitrotted or vanished by the time you read this.
