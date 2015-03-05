@@ -53,6 +53,9 @@ running?\n - does the sockfile have correct permissions?");
   // wrap the fd as a FILE* so we can use stdio functions on it
   // this var is available to afl_postprocess as a global
   sockf = fdopen(sock, "w+");
+  if (!sockf) {
+    die("failed to fdopen");
+  }
 
 }
 
