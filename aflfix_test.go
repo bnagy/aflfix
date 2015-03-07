@@ -80,7 +80,7 @@ func TestRoundTrip(t *testing.T) {
 		t.Fatalf("Failed to connect to fix server")
 	}
 	defer s.Close()
-	// don't need to kill, server will exit the socket EOFs
+	// don't need to kill, server will exit when the socket EOFs
 
 	scanner := bufio.NewScanner(s)
 	scanner.Split(ScanNetStrings)

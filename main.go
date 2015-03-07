@@ -9,9 +9,16 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"time"
 )
 
 const MAXLEN = 10 * 1024 * 1024 // 10 MB
+
+// You need to implement your fixer and then build it in using build tags.
+// Look at fixer_test.go for an example.
+type Fixer interface {
+	Fix([]byte) ([]byte, error)
+}
 
 // ScanNetStrings is a bufio.ScanFunc that can be used with bufio.Scanner to
 // Scan() netstrings from a Reader.
@@ -96,6 +103,7 @@ func main() {
 	log.Printf("Listening on %s...", sockName)
 	defer os.Remove(sockName) // not guaranteed to run
 	defer s.Close()
+	fixer := NewFixer()
 
 	for {
 		conn, err := s.Accept()
@@ -111,14 +119,12 @@ func main() {
 		for scanner.Scan() {
 			// read a netstring
 			in := scanner.Bytes()
-			/*
-
-				  MAKE YOUR CHANGES HERE!
-				  			|
-						   \ /
-						    v
-			*/
-			fixed := bytes.Replace(in, []byte("Hello"), []byte("A MUCH LONGER THING"), -1)
+			fixed, err := fixer.Fix(in)
+			if err != nil {
+				log.Printf("WARNING: Error %s from Fixer!", err)
+				time.Sleep(1 * time.Second)
+				conn.Write(in)
+			}
 			// write a netstring
 			conn.Write([]byte(fmt.Sprintf("%d:%s,", len(fixed), string(fixed))))
 		}
