@@ -1,5 +1,13 @@
 package main
 
+// To get tests to work properly you will need to `go build -tags [FIXERNAME]`
+// because the test code runs the aflfix server out of the current directory,
+// which is not modified by the test invocation ( so it needs to be explicitly
+// rebuilt including the desired fixer )
+
+// Fixers must define the "tests" map as well as the Fix() method etc. See
+// fix_simple.go for an example.
+
 import (
 	"bufio"
 	"fmt"
@@ -10,14 +18,6 @@ import (
 	"testing"
 	"time"
 )
-
-// change these!
-var tests = map[string]string{
-	"Blah Hello World": "Blah A MUCH LONGER THING World",
-	"Blah":             "Blah",
-	"Blah\xff\xfe\xaa\x00\x00Hello World": "Blah\xff\xfe\xaa\x00\x00A MUCH LONGER THING World",
-	"": "",
-}
 
 func sleepyConnect(dest string) (s net.Conn, err error) {
 	zzz := 1 * time.Millisecond
@@ -79,13 +79,12 @@ func TestRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect to fix server")
 	}
+	defer server.Process.Kill()
 	defer s.Close()
-	// don't need to kill, server will exit when the socket EOFs
 
 	scanner := bufio.NewScanner(s)
 	scanner.Split(ScanNetStrings)
 
-	// Change the tests if you change the core logic, obviously.
 	for k, want := range tests {
 		s.Write([]byte(fmt.Sprintf("%d:%s,", len(k), k)))
 		scanner.Scan()

@@ -18,6 +18,7 @@ const MAXLEN = 10 * 1024 * 1024 // 10 MB
 // Look at fixer_test.go for an example.
 type Fixer interface {
 	Fix([]byte) ([]byte, error)
+	Banner() string
 }
 
 // ScanNetStrings is a bufio.ScanFunc that can be used with bufio.Scanner to
@@ -104,6 +105,7 @@ func main() {
 	defer os.Remove(sockName) // not guaranteed to run
 	defer s.Close()
 	fixer := NewFixer()
+	log.Printf("Starting up. Running Fixer: %s", fixer.Banner())
 
 	for {
 		conn, err := s.Accept()
@@ -122,8 +124,11 @@ func main() {
 			fixed, err := fixer.Fix(in)
 			if err != nil {
 				log.Printf("WARNING: Error %s from Fixer!", err)
+				// Don't spam the user with 100+ warnings per second. They're
+				// not going to want to run for long if their fixer is broken.
 				time.Sleep(1 * time.Second)
 				conn.Write(in)
+				continue
 			}
 			// write a netstring
 			conn.Write([]byte(fmt.Sprintf("%d:%s,", len(fixed), string(fixed))))
