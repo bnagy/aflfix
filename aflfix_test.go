@@ -1,19 +1,13 @@
 package main
 
-// To get tests to work properly you will need to `go build -tags [FIXERNAME]`
-// because the test code runs the aflfix server out of the current directory,
-// which is not modified by the test invocation ( so it needs to be explicitly
-// rebuilt including the desired fixer )
-
-// Fixers must define the "tests" map as well as the Fix() method etc. See
-// fix_simple.go for an example.
+// Fixers must define the "tests" map, the "bench" string varible as well as
+// the Fix() method etc. See fix_simple.go for an example.
 
 import (
 	"bufio"
 	"fmt"
 	"net"
 	"os"
-	"os/exec"
 	"path"
 	"testing"
 	"time"
@@ -38,13 +32,8 @@ func sleepyConnect(dest string) (s net.Conn, err error) {
 func BenchmarkFixup(b *testing.B) {
 
 	sock := path.Join(os.TempDir(), "aflfix.sock")
-	os.Setenv("AFL_FIX_SOCK", sock)
-
-	server := exec.Command("./aflfix")
-	err := server.Start()
-	if err != nil {
-		b.Fatalf("Unable to launch server: %s", err)
-	}
+	srv := server{NewFixer()}
+	go srv.Run(sock)
 
 	s, err := sleepyConnect(sock)
 	if err != nil {
@@ -53,9 +42,8 @@ func BenchmarkFixup(b *testing.B) {
 	defer s.Close()
 
 	scanner := bufio.NewScanner(s)
-	scanner.Split(ScanNetStrings)
-	k := "Blah\xff\xfe\xaa\x00\x00Hello World"
-	out := []byte(fmt.Sprintf("%d:%s,", len(k), k))
+	scanner.Split(scanNetStrings)
+	out := []byte(fmt.Sprintf("%d:%s,", len(srv.BenchString()), srv.BenchString()))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -67,29 +55,24 @@ func BenchmarkFixup(b *testing.B) {
 func TestRoundTrip(t *testing.T) {
 
 	sock := path.Join(os.TempDir(), "aflfix.sock")
-	os.Setenv("AFL_FIX_SOCK", sock)
-
-	server := exec.Command("./aflfix")
-	err := server.Start()
-	if err != nil {
-		t.Fatalf("Unable to launch server: %s", err)
-	}
+	srv := server{NewFixer()}
+	go srv.Run(sock)
 
 	s, err := sleepyConnect(sock)
 	if err != nil {
 		t.Fatalf("Failed to connect to fix server")
 	}
-	defer server.Process.Kill()
 	defer s.Close()
 
 	scanner := bufio.NewScanner(s)
-	scanner.Split(ScanNetStrings)
+	scanner.Split(scanNetStrings)
 
-	for k, want := range tests {
+	for k, want := range srv.TestMap() {
 		s.Write([]byte(fmt.Sprintf("%d:%s,", len(k), k)))
 		scanner.Scan()
 		if scanner.Text() != want {
 			t.Fatalf("Sent %s, got %s, want %s", k, scanner.Text(), want)
 		}
 	}
+
 }

@@ -32,3 +32,11 @@ func (f *fixer) Banner() string {
 func (f *fixer) Fix(in []byte) ([]byte, error) {
 	return bytes.Replace(in, []byte("Hello"), []byte("A MUCH LONGER THING"), -1), nil
 }
+
+func (f *fixer) BenchString() string {
+	return "Blah\xff\xfe\xaa\x00\x00Hello World"
+}
+
+func (f *fixer) TestMap() map[string]string {
+	return tests
+}

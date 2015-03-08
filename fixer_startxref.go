@@ -1,10 +1,5 @@
 // +build startxref
 
-// To get tests to work properly you will need to `go build -tags startxref`
-// because the test code runs the aflfix server out of the current directory,
-// which is not modified by the test invocation ( so it needs to be explicitly
-// rebuilt including this fixer )
-
 package main
 
 import (
@@ -25,7 +20,6 @@ var tests = map[string]string{
 	fragNoStartxref: fragNoStartxref,
 	fragNoXref:      fragNoXref,
 }
-
 var xref = []byte("xref")
 var startxref = []byte("startxref")
 
@@ -51,4 +45,12 @@ func (f *fixer) Fix(in []byte) ([]byte, error) {
 	scratch = append(scratch, in[:sxrIdx]...)
 	scratch = append(scratch, []byte(fmt.Sprintf("startxref\n%d\n%%%%EOF\n", xrIdx))...)
 	return scratch, nil
+}
+
+func (f *fixer) BenchString() string {
+	return pdfNew
+}
+
+func (f *fixer) TestMap() map[string]string {
+	return tests
 }
