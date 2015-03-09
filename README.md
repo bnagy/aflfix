@@ -35,10 +35,10 @@ talk to unix sockets, which should be more or less any language at all.
 
 Benchmark for the Go side of a very simple string substitution fixer:
 ```
-$ go test -bench=.
+$ go test -tags simple -bench=.
 PASS
-BenchmarkFixup	  100000	     22149 ns/op
-ok  	github.com/bnagy/aflfix	2.507s
+BenchmarkFixup	    200000	     16212 ns/op
+ok  	github.com/bnagy/aflfix	3.411s
 ```
 
 ## Bugs

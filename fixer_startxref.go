@@ -23,7 +23,7 @@ var tests = map[string]string{
 var xref = []byte("xref")
 var startxref = []byte("startxref")
 
-// Grab some memory
+// Grab some reuseable memory
 var scratch = make([]byte, 0, 1024*1024*10)
 
 func (f *fixer) Banner() string {
@@ -41,7 +41,9 @@ func (f *fixer) Fix(in []byte) ([]byte, error) {
 		// itself or no startxref so we got -1
 		return in, nil
 	}
+	// This reslices scratch a lot, but keeps the same backing array
 	scratch = scratch[:0]
+	// These appends will grow the underlying array if required.
 	scratch = append(scratch, in[:sxrIdx]...)
 	scratch = append(scratch, []byte(fmt.Sprintf("startxref\n%d\n%%%%EOF\n", xrIdx))...)
 	return scratch, nil

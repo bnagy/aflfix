@@ -14,7 +14,7 @@ import (
 
 const MAXLEN = 10 * 1024 * 1024 // 10 MB
 
-// You need to implement this interface in your fixer Look at fixer_simple.go
+// You need to implement this interface in your fixer. Look at fixer_simple.go
 // for an example.
 type Fixer interface {
 	Fix([]byte) ([]byte, error)
