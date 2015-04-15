@@ -19,6 +19,7 @@ var tests = map[string]string{
 	fragNeither:     fragNeither,
 	fragNoStartxref: fragNoStartxref,
 	fragNoXref:      fragNoXref,
+	doubleXrefs:     doubleXrefsFix,
 }
 var xref = []byte("xref")
 var startxref = []byte("startxref")
@@ -27,20 +28,21 @@ var startxref = []byte("startxref")
 var scratch = make([]byte, 0, 1024*1024*10)
 
 func (f *fixer) Banner() string {
-	return "Startxref 1.0"
+	return "Startxref 2.0"
 }
 
 func (f *fixer) Fix(in []byte) ([]byte, error) {
-	xrIdx := bytes.Index(in, xref)
+
+	sxrIdx := bytes.LastIndex(in, startxref)
+	if sxrIdx < 0 {
+		return in, nil
+	}
+
+	xrIdx := bytes.LastIndex(in[:sxrIdx], xref)
 	if xrIdx < 0 {
 		return in, nil
 	}
-	sxrIdx := bytes.Index(in, startxref)
-	if sxrIdx < xrIdx {
-		// either no xref token, so we got the idx of xref inside "startxref"
-		// itself or no startxref so we got -1
-		return in, nil
-	}
+
 	// This reslices scratch a lot, but keeps the same backing array
 	scratch = scratch[:0]
 	// These appends will grow the underlying array if required.

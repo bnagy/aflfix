@@ -118,7 +118,6 @@ afl_postprocess(const unsigned char* in_buf, unsigned int* inout_len)
   // verify terminator (',')
   if (fread(&scratch, 1, 1, sockf) < 1) {
     die("failed to read from socket");
-
   }
   if (scratch != ',') {
     die("invalid netstring");

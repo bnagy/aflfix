@@ -5,6 +5,25 @@
 This is a skeleton to fixup tests for afl-fuzz >= 1.52. I've used a Go fixer,
 but it should work for any language.
 
+## Quickstart
+
+Start fixer
+```
+ben$ AFL_FIX_SOCK=/tmp/aflfix.sock ./aflfix
+2015/04/02 14:48:25 Listening on /tmp/aflfix.sock...
+2015/04/02 14:48:25 Starting up. Running Fixer: Startxref 1.0
+```
+
+Start afl
+```
+AFL_POST_LIBRARY=/path/to/aflfix/ext/post_shim.so AFL_FIX_SOCK=/tmp/aflfix.sock ./afl-fuzz [...]
+```
+
+Fixer gets a connection. W00t.
+```
+2015/04/02 14:50:56 Accepted connection!
+```
+
 ### The way everything works:
 
 afl-fuzz will load a fixup library as a .so if you pass it the

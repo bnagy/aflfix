@@ -41,14 +41,13 @@ func BenchmarkFixup(b *testing.B) {
 	}
 	defer s.Close()
 
-	scanner := bufio.NewScanner(s)
-	scanner.Split(scanNetStrings)
+	r := bufio.NewReader(s)
 	out := []byte(fmt.Sprintf("%d:%s,", len(srv.BenchString()), srv.BenchString()))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		s.Write(out)
-		scanner.Scan()
+		readNetString(r)
 	}
 }
 
@@ -64,14 +63,16 @@ func TestRoundTrip(t *testing.T) {
 	}
 	defer s.Close()
 
-	scanner := bufio.NewScanner(s)
-	scanner.Split(scanNetStrings)
+	r := bufio.NewReader(s)
 
 	for k, want := range srv.TestMap() {
 		s.Write([]byte(fmt.Sprintf("%d:%s,", len(k), k)))
-		scanner.Scan()
-		if scanner.Text() != want {
-			t.Fatalf("Sent %s, got %s, want %s", k, scanner.Text(), want)
+		in, err := readNetString(r)
+		if string(in) != want {
+			t.Fatalf("Sent %s, got %s, want %s", k, string(in), want)
+		}
+		if err != nil {
+			t.Fatalf("Unexpected error %s", err)
 		}
 	}
 

@@ -2,8 +2,9 @@ package main
 
 import (
 	"bufio"
-	"bytes"
+	//"bytes"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -23,60 +24,38 @@ type Fixer interface {
 	TestMap() map[string]string
 }
 
-// scanNetStrings is a bufio.ScanFunc that can be used with bufio.Scanner to
-// Scan() netstrings from a Reader.
-// Netstring information here: http://cr.yp.to/proto/netstrings.txt
-func scanNetStrings(data []byte, atEOF bool) (advance int, token []byte, err error) {
+var data = make([]byte, MAXLEN, MAXLEN)
 
-	if atEOF && len(data) == 0 {
-		return 0, nil, nil
+func readNetString(r *bufio.Reader) ([]byte, error) {
+
+	lenBytes, err := r.ReadBytes(':')
+	if err != nil {
+		return []byte{}, err
 	}
-
-	// find out how much to read
-	dataLen := 0
-	lenLen := bytes.IndexByte(data, ':')
-	if lenLen <= 0 {
-		err = fmt.Errorf("Missing Length")
-		return 0, nil, err
-	}
-
-	// No leading zeroes allowed, per spec
-	lenStr := string(data[:lenLen])
-	if len(lenStr) > 1 && lenStr[0] == '0' {
-		err = fmt.Errorf("Leading zero in length")
-		return 0, nil, err
-	}
-
-	i, err := strconv.ParseInt(lenStr, 10, 0)
-	dataLen = int(i) // 0 on error, safe to check this first
+	i, err := strconv.ParseInt(string(lenBytes[:len(lenBytes)-1]), 10, 0)
+	dataLen := int(i) // 0 on error, safe to check this first
 	if dataLen > MAXLEN {
 		err = fmt.Errorf("Proposed Length > MAXLEN")
-		return 0, nil, err
+		return []byte{}, err
 	}
 	if err != nil {
-		err = fmt.Errorf("Error Parsing Length")
-		return 0, nil, err
+		err = fmt.Errorf("Error Parsing Length %#v", lenBytes)
+		return []byte{}, err
 	}
 
-	// one extra byte for ':'' and ',''
-	if len(data) >= lenLen+1+dataLen+1 {
-		// possibly complete!
-		idxComma := lenLen + 1 + dataLen
-		if data[idxComma] != ',' {
-			err = fmt.Errorf("Missing Terminator (,)")
-			return len(data), nil, err
-		}
-		// return the data between the : and ,
-		return idxComma + 1, data[lenLen+1 : idxComma], nil
+	data = data[:dataLen]
+	_, err = io.ReadFull(r, data)
+	if err != nil {
+		err = fmt.Errorf("Error reading data")
+		return []byte{}, err
+	}
+	b, err := r.ReadByte()
+	if err != nil || b != ',' {
+		err = fmt.Errorf("Missing terminator")
+		return []byte{}, err
 	}
 
-	if atEOF {
-		err = fmt.Errorf("Unexpected EOF")
-		return len(data), nil, err
-	}
-
-	// No complete netstring in buffer yet - request more data.
-	return 0, nil, nil
+	return data, nil
 }
 
 func usage() {
@@ -110,11 +89,17 @@ func (srv *server) Run(sockName string) error {
 		}
 		log.Printf("Accepted connection!")
 
-		scanner := bufio.NewScanner(conn)
-		scanner.Split(scanNetStrings)
-		for scanner.Scan() {
-			// read a netstring
-			in := scanner.Bytes()
+		r := bufio.NewReader(conn)
+		for {
+
+			in, err := readNetString(r)
+			if err != nil {
+				log.Printf("Error during scanning: %s\n", err)
+				log.Printf("Disconnected.")
+				conn.Close()
+				break
+			}
+
 			fixed, err := srv.Fix(in)
 			if err != nil {
 				log.Printf("WARNING: Error %s from Fixer!", err)
@@ -126,12 +111,7 @@ func (srv *server) Run(sockName string) error {
 			}
 			// write a netstring
 			conn.Write([]byte(fmt.Sprintf("%d:%s,", len(fixed), string(fixed))))
-		}
 
-		if scanner.Err() != nil {
-			log.Printf("Error during scanning: %s\n", scanner.Err().Error())
-		} else {
-			log.Printf("Interrupted. Waiting for new connection (^C to abort)\n")
 		}
 	}
 }
